@@ -85,6 +85,44 @@
     align-items:center; justify-content:center; color:var(--muted); text-align:center; padding:20px;
   }
   footer{ padding:6px 24px 22px; font-size:12px; color:var(--muted); }
+
+  #storageWarn{
+    display:none; margin:10px 24px -4px; padding:9px 14px; border-radius:10px;
+    background:#fef3c7; border:1px solid #fde68a; color:#92400e; font-size:13px;
+  }
+  #aiWrap{ padding:0 24px 8px; }
+  .ai-body{ display:grid; grid-template-columns:minmax(300px,420px) 1fr; gap:16px; padding:14px; }
+  @media (max-width:980px){ .ai-body{ grid-template-columns:1fr; } }
+  .ai-left{ display:flex; flex-direction:column; gap:10px; }
+  #dropzone{
+    border:2px dashed #cbd5e1; border-radius:12px; min-height:150px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    color:var(--muted); font-size:13px; padding:12px; background:#f8fafc;
+  }
+  #dropzone.drag{ border-color:var(--primary); background:var(--primary-soft); }
+  #dropzone img{ max-width:100%; max-height:260px; border-radius:8px; }
+  .key-in{
+    width:min(320px,100%); padding:6px 10px; font:inherit; font-size:12.5px;
+    border:1px solid var(--line); border-radius:8px;
+  }
+  .key-in:focus{ outline:2px solid var(--primary); outline-offset:-1px; }
+  #aiContext{ width:100%; padding:8px 10px; font:inherit; border:1px solid var(--line); border-radius:8px; resize:vertical; }
+  .ai-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .ai-note{ font-size:12px; color:var(--muted); }
+  .ai-right{
+    border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+    min-height:150px; max-height:520px; overflow:auto; background:#fff;
+  }
+  .ai-placeholder{ color:var(--muted); font-size:13px; }
+  .ai-error{ color:#b91c1c; white-space:pre-wrap; }
+  .ai-progress{ color:var(--muted); }
+  .ai-result h4{ margin:14px 0 6px; font-size:14px; }
+  .ai-result h5{ margin:12px 0 4px; font-size:13px; }
+  .ai-result p{ margin:6px 0; }
+  .ai-result ul, .ai-result ol{ margin:6px 0; padding-left:22px; }
+  .ai-result li{ margin:3px 0; }
+  .ai-result code{ background:#f1f5f9; border:1px solid var(--line); border-radius:5px; padding:1px 5px; font-size:12.5px; }
+  #analyzeBtn:disabled{ opacity:.6; cursor:default; }
 </style>
 </head>
 <body>
@@ -94,12 +132,20 @@
   <p>Type your boxes on the left, press <b>Create diagram</b>, get a clean tree on the right.</p>
 </header>
 
+<div id="storageWarn">
+  ⚠️ <b>Autosave is blocked in this environment</b> — your tree will be lost when you close or reload
+  this page. Use <b>Save file</b> (left panel) to download your tree, and <b>Open file</b> to load it back later.
+</div>
+
 <main>
   <section class="panel">
     <div class="panel-head">
       <h2>1 · Build your tree</h2>
       <span class="spacer"></span>
       <button id="exampleBtn" class="btn mini" type="button">Load example</button>
+      <button id="saveFileBtn" class="btn mini" type="button" title="Download your tree as a .json file you can keep">Save file</button>
+      <button id="openFileBtn" class="btn mini" type="button" title="Load a tree from a saved .json file">Open file</button>
+      <input type="file" id="openFileInput" accept=".json,application/json" hidden>
       <button id="clearBtn" class="btn mini del" type="button">Clear</button>
     </div>
     <div id="hint">
@@ -138,7 +184,39 @@
   </section>
 </main>
 
-<footer>Everything runs in your browser — your tree autosaves locally and never leaves your device. Boxes are blue, result boxes are green, connector labels sit on the lines.</footer>
+<div id="aiWrap">
+  <section class="panel" id="aiPanel">
+    <div class="panel-head">
+      <h2>3 · AI check — find the mistakes in a picture of a tree diagram</h2>
+      <span class="spacer"></span>
+      <input id="apiKey" type="password" class="key-in" placeholder="Anthropic API key (sk-ant-…)" autocomplete="off">
+    </div>
+    <div class="ai-body">
+      <div class="ai-left">
+        <div id="dropzone" title="Click to choose an image, paste with Ctrl+V, or drag one in">
+          <span id="dzHint">📷 Click to choose a screenshot,<br>paste one here (Ctrl+V), or drag it in</span>
+          <img id="dzPreview" alt="Selected diagram" hidden>
+        </div>
+        <input type="file" id="imgFile" accept="image/*" hidden>
+        <div class="ai-row">
+          <button id="useCurrentBtn" class="btn mini" type="button" title="Analyze the diagram you built above">Use my current diagram</button>
+          <button id="clearImgBtn" class="btn mini" type="button" hidden>Remove image</button>
+        </div>
+        <textarea id="aiContext" rows="2" placeholder="Optional: what is this tree supposed to show? e.g. “probability tree for flipping a coin twice”"></textarea>
+        <button id="analyzeBtn" class="btn primary" type="button">Analyze for errors ▸</button>
+        <div class="ai-note">
+          Uses your own Anthropic API key (create one at console.anthropic.com → API keys).
+          The key stays on this device; the picture is sent directly to Anthropic for the analysis.
+        </div>
+      </div>
+      <div class="ai-right" id="aiResult">
+        <div class="ai-placeholder">The analysis will appear here — every mistake found, where it is, and how to fix it.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer>Everything runs in your browser — your tree is saved in this browser when possible, and you can always download it with “Save file”. Boxes are blue, result boxes are green, connector labels sit on the lines.</footer>
 
 <noscript><p style="padding:0 24px">This app needs JavaScript enabled.</p></noscript>
 
@@ -171,6 +249,17 @@ let orientation = 'v';
 let zoom = 1;
 let hasDiagram = false;
 let pendingFocus = null; // {id, sel}
+
+// sandboxed pages (e.g. embedded previews) block localStorage entirely —
+// detect that up front so we can warn instead of losing work silently
+const storageOK = (() => {
+  try {
+    const k = '__tree-diagram-probe__';
+    localStorage.setItem(k, '1');
+    localStorage.removeItem(k);
+    return true;
+  } catch (e) { return false; }
+})();
 
 /* ---------- persistence ---------- */
 const STORE = 'tree-diagram-creator-v1';
@@ -632,31 +721,81 @@ function downloadSVG() {
   triggerDownload(URL.createObjectURL(new Blob([m], { type: 'image/svg+xml' })), 'tree-diagram.svg');
 }
 
+function svgToPngCanvas(scale = 2) {
+  return new Promise((resolve, reject) => {
+    const svg = diagramWrap.querySelector('svg');
+    const m = svgMarkup();
+    if (!m) { reject(new Error('no-diagram')); return; }
+    const W = +svg.dataset.w, H = +svg.dataset.h;
+    const url = URL.createObjectURL(new Blob([m], { type: 'image/svg+xml' }));
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = W * scale;
+      c.height = H * scale;
+      const cx = c.getContext('2d');
+      cx.fillStyle = '#ffffff';
+      cx.fillRect(0, 0, c.width, c.height);
+      cx.drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('render-failed')); };
+    img.src = url;
+  });
+}
+
 function downloadPNG() {
-  const svg = diagramWrap.querySelector('svg');
-  const m = svgMarkup();
-  if (!m) { alert('Create the diagram first.'); return; }
-  const W = +svg.dataset.w, H = +svg.dataset.h, scale = 2;
-  const url = URL.createObjectURL(new Blob([m], { type: 'image/svg+xml' }));
-  const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    c.width = W * scale;
-    c.height = H * scale;
-    const cx = c.getContext('2d');
-    cx.fillStyle = '#ffffff';
-    cx.fillRect(0, 0, c.width, c.height);
-    cx.drawImage(img, 0, 0, c.width, c.height);
-    URL.revokeObjectURL(url);
-    c.toBlob(b => triggerDownload(URL.createObjectURL(b), 'tree-diagram.png'), 'image/png');
+  svgToPngCanvas(2)
+    .then(c => c.toBlob(b => triggerDownload(URL.createObjectURL(b), 'tree-diagram.png'), 'image/png'))
+    .catch(() => alert('Create the diagram first.'));
+}
+
+/* ---------- save / open as a file ---------- */
+function saveTreeFile() {
+  const data = JSON.stringify({ root, orientation },
+    (k, v) => k.startsWith('_') ? undefined : v, 2);
+  triggerDownload(URL.createObjectURL(new Blob([data], { type: 'application/json' })), 'tree-diagram.json');
+}
+
+function openTreeFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || typeof data.root !== 'object' || data.root === null) throw new Error('bad file');
+      if (!treeIsEmpty() && !confirm('Replace your current tree with the one from this file?')) return;
+      root = data.root;
+      orientation = data.orientation === 'h' ? 'h' : 'v';
+      (function normalize(n) {
+        n.id = nextId++;
+        n.type = n.type === 'result' ? 'result' : 'box';
+        n.text = typeof n.text === 'string' ? n.text : '';
+        n.connector = typeof n.connector === 'string' ? n.connector : '';
+        n.children = Array.isArray(n.children) ? n.children : [];
+        n.children.forEach(normalize);
+      })(root);
+      orientSel.value = orientation;
+      save();
+      renderEditor();
+      createDiagram();
+    } catch (e) {
+      alert("That file doesn't look like a saved tree diagram.");
+    }
   };
-  img.src = url;
+  reader.readAsText(file);
 }
 
 /* ---------- wiring ---------- */
 $('#submitBtn').addEventListener('click', createDiagram);
 $('#exampleBtn').addEventListener('click', loadExample);
 $('#clearBtn').addEventListener('click', clearAll);
+$('#saveFileBtn').addEventListener('click', saveTreeFile);
+$('#openFileBtn').addEventListener('click', () => $('#openFileInput').click());
+$('#openFileInput').addEventListener('change', e => {
+  if (e.target.files[0]) openTreeFile(e.target.files[0]);
+  e.target.value = '';
+});
 $('#dlSvg').addEventListener('click', downloadSVG);
 $('#dlPng').addEventListener('click', downloadPNG);
 $('#zoomIn').addEventListener('click', () => { zoom = Math.min(3, zoom * 1.2); applyZoom(); });
@@ -669,6 +808,231 @@ orientSel.addEventListener('change', () => {
 });
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); createDiagram(); }
+});
+
+/* ---------- AI check (analyze a picture of a tree diagram) ---------- */
+const apiKeyIn    = $('#apiKey');
+const dropzone    = $('#dropzone');
+const dzHint      = $('#dzHint');
+const dzPreview   = $('#dzPreview');
+const imgFileIn   = $('#imgFile');
+const clearImgBtn = $('#clearImgBtn');
+const aiContextIn = $('#aiContext');
+const analyzeBtn  = $('#analyzeBtn');
+const aiResult    = $('#aiResult');
+
+const KEY_STORE = 'tree-diagram-api-key';
+let aiImage = null; // {media_type, data} — base64 without the data: prefix
+
+const AI_PROMPT = `You are reviewing a picture of a tree diagram. It might be a decision tree, a probability tree, a dichotomous/classification key, a family tree, or a flowchart-style tree.
+
+1. Start by briefly saying what the diagram appears to show (one or two sentences).
+2. Then check it carefully for mistakes:
+   - Structure: branches that do not connect properly, missing or duplicate branches, inconsistent levels, dead ends that should be marked as results, results that wrongly continue into more branches.
+   - Labels: missing labels on branches, contradictory or duplicated labels, unclear wording, spelling and grammar mistakes.
+   - Logic: sibling branches that do not cover all the possibilities or that overlap, choices in an order that does not make sense, results attached to the wrong branch.
+   - If it is a probability tree: sibling probabilities that do not sum to 1, wrong fraction/decimal conversions, multiplication errors in the outcome probabilities.
+3. List every issue as a numbered item. For each one: quote the exact text from the diagram so it is easy to find, explain what is wrong, and say how to fix it.
+4. If part of the image is unreadable, say so instead of guessing.
+5. Finish with a "Summary": the most important fixes in order, plus one thing the diagram does well. If you find no real errors, say the diagram looks correct and mention anything that could still be improved.
+
+Keep the tone friendly and clear — the reader may be a student.`;
+
+if (storageOK) {
+  apiKeyIn.value = localStorage.getItem(KEY_STORE) || '';
+  apiKeyIn.addEventListener('input', () => {
+    try { localStorage.setItem(KEY_STORE, apiKeyIn.value.trim()); } catch (e) {}
+  });
+}
+
+function setAiImage(mediaType, base64, previewUrl) {
+  aiImage = { media_type: mediaType, data: base64 };
+  dzPreview.src = previewUrl;
+  dzPreview.hidden = false;
+  dzHint.hidden = true;
+  clearImgBtn.hidden = false;
+}
+
+function clearAiImage() {
+  aiImage = null;
+  dzPreview.hidden = true;
+  dzPreview.removeAttribute('src');
+  dzHint.hidden = false;
+  clearImgBtn.hidden = true;
+}
+
+// downscale to keep the request comfortably under the API's image limits
+function loadImageBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.onload = () => {
+    const MAX = 2000;
+    const ratio = Math.min(1, MAX / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.naturalWidth * ratio));
+    c.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+    const cx = c.getContext('2d');
+    cx.fillStyle = '#ffffff';
+    cx.fillRect(0, 0, c.width, c.height);
+    cx.drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    let dataUrl = c.toDataURL('image/png');
+    let type = 'image/png';
+    if (dataUrl.length > 4_000_000) {
+      dataUrl = c.toDataURL('image/jpeg', 0.85);
+      type = 'image/jpeg';
+    }
+    setAiImage(type, dataUrl.split(',')[1], dataUrl);
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); alert("That file doesn't seem to be an image."); };
+  img.src = url;
+}
+
+dropzone.addEventListener('click', () => imgFileIn.click());
+imgFileIn.addEventListener('change', () => {
+  if (imgFileIn.files[0]) loadImageBlob(imgFileIn.files[0]);
+  imgFileIn.value = '';
+});
+document.addEventListener('paste', e => {
+  const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/'));
+  if (item) { e.preventDefault(); loadImageBlob(item.getAsFile()); }
+});
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  const f = e.dataTransfer?.files?.[0];
+  if (f && f.type.startsWith('image/')) loadImageBlob(f);
+});
+clearImgBtn.addEventListener('click', clearAiImage);
+$('#useCurrentBtn').addEventListener('click', () => {
+  svgToPngCanvas(2)
+    .then(c => {
+      const dataUrl = c.toDataURL('image/png');
+      setAiImage('image/png', dataUrl.split(',')[1], dataUrl);
+    })
+    .catch(() => alert('Create the diagram first (press “Create diagram”), then try again.'));
+});
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// tiny markdown renderer for the analysis text: headings, lists, bold, code
+function mdToHtml(md) {
+  const inline = s => s
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  const out = [];
+  let list = null;
+  const closeList = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const raw of md.split('\n')) {
+    const line = raw.trimEnd();
+    const h = line.match(/^(#{1,6})\s+(.*)/);
+    const ul = line.match(/^\s*[-*•]\s+(.*)/);
+    const ol = line.match(/^\s*\d+[.)]\s+(.*)/);
+    if (h) {
+      closeList();
+      const lvl = Math.min(5, h[1].length + 3);
+      out.push(`<h${lvl}>${inline(escapeHtml(h[2]))}</h${lvl}>`);
+    } else if (ul) {
+      if (list !== 'ul') { closeList(); out.push('<ul>'); list = 'ul'; }
+      out.push(`<li>${inline(escapeHtml(ul[1]))}</li>`);
+    } else if (ol) {
+      if (list !== 'ol') { closeList(); out.push('<ol>'); list = 'ol'; }
+      out.push(`<li>${inline(escapeHtml(ol[1]))}</li>`);
+    } else if (!line.trim()) {
+      closeList();
+    } else {
+      closeList();
+      out.push(`<p>${inline(escapeHtml(line))}</p>`);
+    }
+  }
+  closeList();
+  return out.join('');
+}
+
+async function analyze() {
+  const key = apiKeyIn.value.trim();
+  if (!aiImage) {
+    aiResult.innerHTML = '<div class="ai-error">Add a picture first — choose a screenshot, paste one in, or press “Use my current diagram”.</div>';
+    return;
+  }
+  if (!key) {
+    aiResult.innerHTML = '<div class="ai-error">Enter your Anthropic API key (top right of this panel). You can create one at console.anthropic.com → API keys.</div>';
+    apiKeyIn.focus();
+    return;
+  }
+
+  analyzeBtn.disabled = true;
+  const started = Date.now();
+  aiResult.innerHTML = '<div class="ai-progress">Analyzing your diagram — this usually takes under a minute…</div>';
+  const progressEl = aiResult.firstChild;
+  const tick = setInterval(() => {
+    progressEl.textContent = `Analyzing your diagram — ${Math.round((Date.now() - started) / 1000)}s…`;
+  }, 1000);
+
+  const context = aiContextIn.value.trim();
+  const promptText = (context ? `Context from the user about what the diagram is meant to show: ${context}\n\n` : '') + AI_PROMPT;
+
+  const ctrl = new AbortController();
+  const timeout = setTimeout(() => ctrl.abort(), 300000);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-8',
+        max_tokens: 8000,
+        thinking: { type: 'adaptive' },
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: aiImage.media_type, data: aiImage.data } },
+            { type: 'text', text: promptText },
+          ],
+        }],
+      }),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg = body?.error?.message || `HTTP ${res.status}`;
+      const hint =
+        res.status === 401 ? ' — the API key looks wrong; double-check it.' :
+        res.status === 429 ? " — you're being rate limited (or out of credit); wait a moment and try again." :
+        res.status >= 500 ? " — Anthropic's API had a hiccup; try again shortly." : '';
+      throw new Error(msg + hint);
+    }
+    if (body.stop_reason === 'refusal') throw new Error('The model declined to analyze this image.');
+    const answer = (body.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n\n');
+    if (!answer) throw new Error('The model returned an empty answer — try again.');
+    aiResult.innerHTML = `<div class="ai-result">${mdToHtml(answer)}</div>`;
+  } catch (err) {
+    const reason =
+      err.name === 'AbortError' ? 'The request timed out after 5 minutes — try again.' :
+      err instanceof TypeError
+        ? "Couldn't reach the Anthropic API from this page. If you're viewing this inside a sandboxed preview (like the Claude artifact viewer), network requests are blocked there — open index.html directly in your browser (or host it, e.g. on GitHub Pages) and try again."
+        : err.message;
+    aiResult.innerHTML = `<div class="ai-error">${escapeHtml('Analysis failed: ' + reason)}</div>`;
+  } finally {
+    clearInterval(tick);
+    clearTimeout(timeout);
+    analyzeBtn.disabled = false;
+  }
+}
+analyzeBtn.addEventListener('click', analyze);
+
+/* ---------- init ---------- */
+if (!storageOK) $('#storageWarn').style.display = 'block';
+window.addEventListener('beforeunload', e => {
+  if (!storageOK && !treeIsEmpty()) { e.preventDefault(); e.returnValue = ''; }
 });
 
 load();
