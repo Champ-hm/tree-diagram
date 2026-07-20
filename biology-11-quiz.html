@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Biology 11 — Review Quiz</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧬</text></svg>">
+<style>
+  :root{
+    --bg:#f1f5f9; --panel:#ffffff; --line:#e2e8f0; --ink:#0f172a; --muted:#64748b;
+    --primary:#0d9488; --primary-dark:#0f766e; --primary-soft:#f0fdfa;
+    --green:#059669; --green-soft:#ecfdf5; --green-line:#a7f3d0;
+    --red:#dc2626; --red-soft:#fef2f2; --red-line:#fecaca;
+    --amber:#d97706; --amber-soft:#fffbeb; --amber-line:#fde68a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --panel:#111a2b; --line:#233048; --ink:#e8eef7; --muted:#94a3b8;
+      --primary:#2dd4bf; --primary-dark:#5eead4; --primary-soft:#0c2a29;
+      --green:#34d399; --green-soft:#0d2a20; --green-line:#1e5a44;
+      --red:#f87171; --red-soft:#2a1414; --red-line:#5a2626;
+      --amber:#fbbf24; --amber-soft:#2a2110; --amber-line:#5a4a1e;
+    }
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:22px 18px 60px; }
+
+  header{ margin:8px 0 18px; }
+  header h1{ margin:0 0 4px; font-size:23px; letter-spacing:-.01em; }
+  header p{ margin:0; color:var(--muted); font-size:14px; }
+
+  .bar{
+    position:sticky; top:0; z-index:5; margin:14px 0 18px; padding:10px 0;
+    background:var(--bg); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  }
+  .track{ flex:1; min-width:150px; height:8px; background:var(--line); border-radius:99px; overflow:hidden; }
+  .track > i{ display:block; height:100%; width:0; background:var(--primary); border-radius:99px; transition:width .25s ease; }
+  .bar .meta{ font-size:13px; color:var(--muted); white-space:nowrap; }
+  .bar .score{ font-weight:700; color:var(--ink); }
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    box-shadow:0 1px 2px rgba(15,23,42,.05); padding:18px 18px 16px; margin:0 0 16px;
+  }
+  .qtop{ display:flex; align-items:center; gap:9px; margin-bottom:10px; flex-wrap:wrap; }
+  .qnum{ font-size:12px; font-weight:700; color:var(--muted); letter-spacing:.03em; }
+  .tag{
+    font-size:11px; font-weight:600; padding:3px 9px; border-radius:99px;
+    background:var(--primary-soft); color:var(--primary-dark); border:1px solid var(--line);
+  }
+  .qtext{ font-size:16px; font-weight:600; margin:0 0 13px; line-height:1.4; }
+
+  .opts{ display:flex; flex-direction:column; gap:8px; }
+  .opt{
+    display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left;
+    padding:11px 13px; border:1px solid var(--line); border-radius:10px;
+    background:var(--panel); color:var(--ink); font:inherit; cursor:pointer; transition:.12s;
+  }
+  .opt:hover:not(:disabled){ border-color:var(--primary); background:var(--primary-soft); }
+  .opt:disabled{ cursor:default; }
+  .opt .key{
+    flex:none; width:24px; height:24px; border-radius:7px; display:grid; place-items:center;
+    font-size:12.5px; font-weight:700; background:var(--bg); border:1px solid var(--line); color:var(--muted);
+  }
+  .opt .lab{ flex:1; padding-top:2px; }
+  .opt.correct{ border-color:var(--green-line); background:var(--green-soft); }
+  .opt.correct .key{ background:var(--green); border-color:var(--green); color:#fff; }
+  .opt.wrong{ border-color:var(--red-line); background:var(--red-soft); }
+  .opt.wrong .key{ background:var(--red); border-color:var(--red); color:#fff; }
+  .opt .mark{ flex:none; font-weight:700; font-size:15px; }
+  .opt.correct .mark{ color:var(--green); }
+  .opt.wrong .mark{ color:var(--red); }
+
+  .explain{
+    margin-top:12px; padding:11px 13px; border-radius:10px; font-size:14px; line-height:1.5;
+    background:var(--amber-soft); border:1px solid var(--amber-line); display:none;
+  }
+  .explain.show{ display:block; }
+  .explain b{ color:var(--ink); }
+  .explain .verdict{ font-weight:700; margin-right:5px; }
+  .explain .verdict.ok{ color:var(--green); }
+  .explain .verdict.no{ color:var(--red); }
+
+  .btn{
+    border:1px solid var(--primary); background:var(--primary); color:#fff; font:inherit; font-weight:700;
+    border-radius:10px; padding:11px 18px; cursor:pointer;
+  }
+  .btn:hover{ background:var(--primary-dark); border-color:var(--primary-dark); }
+  .btn.ghost{ background:transparent; color:var(--primary-dark); }
+  .btn.ghost:hover{ background:var(--primary-soft); }
+  .center{ text-align:center; }
+
+  /* Results */
+  #results{ display:none; }
+  #results.show{ display:block; }
+  .scorebig{ font-size:46px; font-weight:800; letter-spacing:-.02em; margin:2px 0 2px; }
+  .scoresub{ color:var(--muted); margin:0 0 18px; }
+  .grade{ display:inline-block; font-size:13px; font-weight:700; padding:5px 13px; border-radius:99px; margin-bottom:10px; }
+  .breakdown{ margin:16px 0 6px; }
+  .breakdown h3{ font-size:14px; margin:0 0 10px; }
+  .trow{ display:flex; align-items:center; gap:10px; margin:7px 0; font-size:13.5px; }
+  .trow .name{ flex:none; width:170px; color:var(--ink); }
+  .trow .tbar{ flex:1; height:8px; border-radius:99px; background:var(--line); overflow:hidden; }
+  .trow .tbar > i{ display:block; height:100%; border-radius:99px; }
+  .trow .val{ flex:none; width:42px; text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
+  .weakbox{
+    margin-top:16px; padding:12px 14px; border-radius:11px;
+    background:var(--amber-soft); border:1px solid var(--amber-line); font-size:14px; line-height:1.5;
+  }
+  .weakbox b{ color:var(--ink); }
+  footer{ text-align:center; color:var(--muted); font-size:12px; margin-top:26px; }
+  a{ color:var(--primary-dark); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧬 Biology 11 — Review Quiz</h1>
+    <p>20 questions across the core units. Pick an answer to see if it's right and read the explanation. Your weak topics are summarized at the end.</p>
+  </header>
+
+  <div class="bar">
+    <div class="track"><i id="prog"></i></div>
+    <div class="meta"><span id="answered">0</span>/20 answered · <span class="score" id="scoreNow">0</span> correct</div>
+  </div>
+
+  <div id="quiz"></div>
+
+  <div class="card center" id="finishCard" style="display:none;">
+    <button class="btn" id="seeResults">See my results ↓</button>
+  </div>
+
+  <div class="card" id="results">
+    <div class="center">
+      <div class="grade" id="gradeChip"></div>
+      <div class="scorebig"><span id="finalScore">0</span> / 20</div>
+      <p class="scoresub" id="finalPct"></p>
+    </div>
+    <div class="breakdown">
+      <h3>How you did by topic</h3>
+      <div id="topicBreakdown"></div>
+    </div>
+    <div class="weakbox" id="weakBox"></div>
+    <div class="center" style="margin-top:18px;">
+      <button class="btn ghost" id="retry">↺ Retake quiz</button>
+    </div>
+  </div>
+
+  <footer>Standalone review — works offline. Grade 11 Biology core topics.</footer>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    topic:"Taxonomy",
+    q:"What is the correct order of the taxonomic hierarchy, from broadest to most specific?",
+    options:[
+      "Kingdom → Phylum → Class → Order → Family → Genus → Species",
+      "Domain → Kingdom → Class → Phylum → Family → Species → Genus",
+      "Species → Genus → Family → Order → Class → Phylum → Kingdom",
+      "Domain → Phylum → Kingdom → Order → Class → Genus → Species"
+    ],
+    answer:0,
+    explain:"From broad to specific: Domain, Kingdom, Phylum, Class, Order, Family, Genus, Species. Of the choices, only 'Kingdom → Phylum → Class → Order → Family → Genus → Species' keeps that order (Domain sits above Kingdom). A common mnemonic is 'Dear King Philip Came Over For Good Soup.'"
+  },
+  {
+    topic:"Taxonomy",
+    q:"Which of these is written correctly according to the rules of binomial nomenclature?",
+    options:[
+      "homo sapiens",
+      "Homo Sapiens",
+      "Homo sapiens",
+      "HOMO SAPIENS"
+    ],
+    answer:2,
+    explain:"The genus is capitalized, the species (specific epithet) is lowercase, and the whole name is italicized (or underlined when handwritten): Homo sapiens. Never capitalize the species name."
+  },
+  {
+    topic:"Taxonomy",
+    q:"The three domains of life are:",
+    options:[
+      "Plants, Animals, and Fungi",
+      "Bacteria, Archaea, and Eukarya",
+      "Prokarya, Eukarya, and Virus",
+      "Monera, Protista, and Animalia"
+    ],
+    answer:1,
+    explain:"The three-domain system (Woese) is Bacteria, Archaea, and Eukarya. Bacteria and Archaea are prokaryotes; Eukarya contains all organisms with a true nucleus (protists, fungi, plants, animals)."
+  },
+  {
+    topic:"Cells",
+    q:"Which feature is found in a eukaryotic cell but NOT in a prokaryotic cell?",
+    options:[
+      "A cell membrane",
+      "Ribosomes",
+      "A membrane-bound nucleus",
+      "DNA"
+    ],
+    answer:2,
+    explain:"Prokaryotes have DNA, ribosomes, and a cell membrane, but their DNA floats freely in the cytoplasm (nucleoid region). Only eukaryotes have a membrane-bound nucleus and other membrane-bound organelles like mitochondria."
+  },
+  {
+    topic:"Microbiology",
+    q:"Why are viruses generally NOT considered living organisms?",
+    options:[
+      "They are too small to see with any microscope",
+      "They cannot reproduce on their own — they need a host cell's machinery",
+      "They are made only of protein and contain no genetic material",
+      "They never cause disease in living things"
+    ],
+    answer:1,
+    explain:"Viruses lack cells, cannot carry out metabolism, and cannot reproduce independently — they must hijack a host cell's machinery to replicate. They DO contain genetic material (DNA or RNA), which is why the 'no genetic material' option is wrong."
+  },
+  {
+    topic:"Evolution",
+    q:"Which statement best describes natural selection?",
+    options:[
+      "Organisms change their bodies during life and pass those changes to offspring",
+      "Individuals with traits better suited to the environment tend to survive and reproduce more",
+      "Evolution has a goal of producing more complex or 'perfect' organisms",
+      "All members of a population change at the same time to fit the environment"
+    ],
+    answer:1,
+    explain:"Natural selection is differential survival and reproduction: heritable traits that improve fitness in a given environment become more common over generations. It acts on existing variation, has no goal, and works on populations over time — not on individuals reshaping themselves (that's the discredited Lamarckian idea)."
+  },
+  {
+    topic:"Evolution",
+    q:"The forelimbs of humans, whales, and bats have the same bone arrangement despite different functions. These are an example of:",
+    options:[
+      "Analogous structures",
+      "Vestigial structures",
+      "Homologous structures",
+      "Convergent evolution"
+    ],
+    answer:2,
+    explain:"Homologous structures share a common evolutionary origin (same underlying anatomy) even though they are used differently — evidence of descent from a common ancestor. Analogous structures (e.g., bird vs. insect wings) do the same job but have different origins."
+  },
+  {
+    topic:"Evolution",
+    q:"Genetic drift differs from natural selection because genetic drift:",
+    options:[
+      "Only occurs in very large populations",
+      "Is a random change in allele frequencies, not based on fitness",
+      "Always increases an organism's fitness",
+      "Cannot change allele frequencies in a population"
+    ],
+    answer:1,
+    explain:"Genetic drift is random change in allele frequency due to chance events, and its effects are strongest in small populations. Natural selection, by contrast, is non-random — it favors alleles that improve fitness."
+  },
+  {
+    topic:"Meiosis",
+    q:"How many daughter cells does meiosis produce, and how does their chromosome number compare to the parent cell?",
+    options:[
+      "2 cells, each with the same (diploid) number as the parent",
+      "4 cells, each with half (haploid) the number of the parent",
+      "4 cells, each diploid",
+      "2 cells, each haploid"
+    ],
+    answer:1,
+    explain:"Meiosis produces 4 genetically different haploid (n) daughter cells from one diploid (2n) parent, halving the chromosome number to make gametes. Mitosis, by contrast, makes 2 identical diploid cells."
+  },
+  {
+    topic:"Meiosis",
+    q:"Which process happens in meiosis but NOT in mitosis, increasing genetic variation?",
+    options:[
+      "DNA replication before division",
+      "Separation of sister chromatids",
+      "Crossing over between homologous chromosomes",
+      "Formation of a spindle"
+    ],
+    answer:2,
+    explain:"Crossing over (exchange of segments between homologous chromosomes during prophase I) and independent assortment occur in meiosis, creating new allele combinations. DNA replication, chromatid separation, and spindle formation happen in both processes."
+  },
+  {
+    topic:"Genetics",
+    q:"In a cross between two heterozygous tall pea plants (Tt × Tt), where tall (T) is dominant, what is the expected phenotype ratio of the offspring?",
+    options:[
+      "1 tall : 1 short",
+      "3 tall : 1 short",
+      "All tall",
+      "1 tall : 2 medium : 1 short"
+    ],
+    answer:1,
+    explain:"Tt × Tt gives genotypes 1 TT : 2 Tt : 1 tt. Because T is dominant, TT and Tt are both tall, so the phenotype ratio is 3 tall : 1 short. The genotype ratio is 1:2:1."
+  },
+  {
+    topic:"Genetics",
+    q:"An organism with the genotype 'Bb' is best described as:",
+    options:[
+      "Homozygous dominant",
+      "Homozygous recessive",
+      "Heterozygous",
+      "Its phenotype, not its genotype"
+    ],
+    answer:2,
+    explain:"Two different alleles (one dominant B, one recessive b) means the organism is heterozygous. Homozygous means two identical alleles (BB or bb). Genotype is the allele makeup (Bb); phenotype is the trait you actually see."
+  },
+  {
+    topic:"Genetics",
+    q:"In snapdragons, crossing a red flower (RR) with a white flower (WW) produces all pink offspring. This is an example of:",
+    options:[
+      "Complete dominance",
+      "Incomplete dominance",
+      "Codominance",
+      "A test cross"
+    ],
+    answer:1,
+    explain:"Incomplete dominance produces a blended intermediate phenotype (pink) because neither allele fully masks the other. Codominance differs — both alleles show fully and separately at once (e.g., roan cattle with distinct red AND white hairs, or human AB blood type)."
+  },
+  {
+    topic:"Photosynthesis",
+    q:"Which equation correctly summarizes photosynthesis?",
+    options:[
+      "6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂",
+      "C₆H₁₂O₆ + 6O₂ → 6CO₂ + 6H₂O + energy",
+      "6O₂ + 6H₂O → C₆H₁₂O₆ + 6CO₂",
+      "C₆H₁₂O₆ → 2 lactic acid + energy"
+    ],
+    answer:0,
+    explain:"Photosynthesis uses carbon dioxide and water plus light energy to build glucose and release oxygen: 6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂. It occurs in chloroplasts. The second equation is cellular respiration (the reverse)."
+  },
+  {
+    topic:"Cell respiration",
+    q:"In eukaryotic cells, most ATP from cellular respiration is produced in the:",
+    options:[
+      "Chloroplast",
+      "Nucleus",
+      "Mitochondria",
+      "Ribosome"
+    ],
+    answer:2,
+    explain:"The mitochondria are the 'powerhouse' of the cell — the site of the Krebs cycle and the electron transport chain, which generate most of the cell's ATP. Chloroplasts do photosynthesis; ribosomes make proteins."
+  },
+  {
+    topic:"Ecology — cycles",
+    q:"Nitrogen-fixing bacteria are essential to ecosystems because they:",
+    options:[
+      "Break down glucose to release carbon dioxide",
+      "Convert atmospheric N₂ gas into a form (ammonia/nitrates) that plants can use",
+      "Turn nitrates back into nitrogen gas",
+      "Produce oxygen during photosynthesis"
+    ],
+    answer:1,
+    explain:"Most organisms can't use N₂ gas directly. Nitrogen-fixing bacteria (often in legume root nodules) convert N₂ into ammonia/nitrates that plants can absorb. Converting nitrates back to N₂ gas is denitrification — a different step."
+  },
+  {
+    topic:"Ecology — energy",
+    q:"Roughly how much energy is typically transferred from one trophic level to the next in a food chain?",
+    options:[
+      "About 90%",
+      "About 50%",
+      "About 10%",
+      "About 1%"
+    ],
+    answer:2,
+    explain:"The '10% rule': only about 10% of the energy stored at one trophic level passes to the next. The rest is lost mainly as heat through metabolism/respiration. This is why food chains rarely have more than 4–5 links."
+  },
+  {
+    topic:"Ecology — symbiosis",
+    q:"A relationship in which one organism benefits and the other is neither helped nor harmed is called:",
+    options:[
+      "Mutualism",
+      "Parasitism",
+      "Commensalism",
+      "Competition"
+    ],
+    answer:2,
+    explain:"Commensalism = one benefits, the other is unaffected (e.g., barnacles on a whale). Mutualism = both benefit; parasitism = one benefits while harming the other; competition = both are harmed as they vie for a resource."
+  },
+  {
+    topic:"Cell transport",
+    q:"A plant cell is placed in a hypertonic solution (higher solute concentration outside the cell). What happens?",
+    options:[
+      "Water moves into the cell and it swells",
+      "Water moves out of the cell and it shrinks/plasmolyzes",
+      "Nothing — water cannot cross the membrane",
+      "Solutes move into the cell to balance the concentration"
+    ],
+    answer:1,
+    explain:"In osmosis, water moves from high water concentration (low solute) to low water concentration (high solute). A hypertonic external solution draws water OUT of the cell, so it shrinks; in plant cells the membrane pulls away from the wall (plasmolysis)."
+  },
+  {
+    topic:"Plants",
+    q:"In vascular plants, which tissue transports water and minerals upward from the roots?",
+    options:[
+      "Phloem",
+      "Xylem",
+      "Stomata",
+      "Cuticle"
+    ],
+    answer:1,
+    explain:"Xylem carries water and dissolved minerals up from the roots (transpiration pulls it upward). Phloem transports sugars made in the leaves to the rest of the plant. Memory hook: 'xylem = water up.'"
+  }
+];
+
+const quizEl = document.getElementById('quiz');
+const progEl = document.getElementById('prog');
+const answeredEl = document.getElementById('answered');
+const scoreNowEl = document.getElementById('scoreNow');
+const finishCard = document.getElementById('finishCard');
+const resultsEl = document.getElementById('results');
+
+let answered = 0;
+let score = 0;
+const topicStats = {};      // topic -> {correct, total}
+const perQuestion = [];     // record correctness per question
+
+QUESTIONS.forEach((item, qi) => {
+  topicStats[item.topic] = topicStats[item.topic] || {correct:0, total:0};
+  topicStats[item.topic].total++;
+
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const top = document.createElement('div');
+  top.className = 'qtop';
+  top.innerHTML = `<span class="qnum">QUESTION ${qi+1}</span><span class="tag">${item.topic}</span>`;
+  card.appendChild(top);
+
+  const qt = document.createElement('p');
+  qt.className = 'qtext';
+  qt.textContent = item.q;
+  card.appendChild(qt);
+
+  const opts = document.createElement('div');
+  opts.className = 'opts';
+  const keyLetters = ['A','B','C','D','E'];
+
+  item.options.forEach((opt, oi) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = `<span class="key">${keyLetters[oi]}</span><span class="lab"></span><span class="mark"></span>`;
+    b.querySelector('.lab').textContent = opt;
+    b.addEventListener('click', () => choose(qi, oi, opts, expl, item));
+    opts.appendChild(b);
+  });
+  card.appendChild(opts);
+
+  const expl = document.createElement('div');
+  expl.className = 'explain';
+  card.appendChild(expl);
+
+  quizEl.appendChild(card);
+});
+
+function choose(qi, oi, opts, expl, item){
+  if (perQuestion[qi] !== undefined) return; // already answered
+  const correct = oi === item.answer;
+  perQuestion[qi] = correct;
+  answered++;
+  if (correct){ score++; topicStats[item.topic].correct++; }
+
+  const buttons = opts.querySelectorAll('.opt');
+  buttons.forEach((b, bi) => {
+    b.disabled = true;
+    const mark = b.querySelector('.mark');
+    if (bi === item.answer){ b.classList.add('correct'); mark.textContent = '✓'; }
+    if (bi === oi && !correct){ b.classList.add('wrong'); mark.textContent = '✗'; }
+  });
+
+  const verdict = correct
+    ? `<span class="verdict ok">Correct.</span>`
+    : `<span class="verdict no">Not quite.</span>`;
+  expl.innerHTML = verdict + item.explain;
+  expl.classList.add('show');
+
+  updateBar();
+  if (answered === QUESTIONS.length) finishCard.style.display = 'block';
+}
+
+function updateBar(){
+  answeredEl.textContent = answered;
+  scoreNowEl.textContent = score;
+  progEl.style.width = (answered / QUESTIONS.length * 100) + '%';
+}
+
+document.getElementById('seeResults').addEventListener('click', showResults);
+document.getElementById('retry').addEventListener('click', () => location.reload());
+
+function showResults(){
+  document.getElementById('finalScore').textContent = score;
+  const pct = Math.round(score / QUESTIONS.length * 100);
+  document.getElementById('finalPct').textContent = pct + '% — ' + verdictText(pct);
+
+  const chip = document.getElementById('gradeChip');
+  const g = letterGrade(pct);
+  chip.textContent = g.label;
+  chip.style.background = g.soft; chip.style.color = g.color; chip.style.border = '1px solid ' + g.color;
+
+  // Topic breakdown, weakest first
+  const rows = Object.entries(topicStats)
+    .map(([name, s]) => ({name, ...s, pct: Math.round(s.correct/s.total*100)}))
+    .sort((a,b) => a.pct - b.pct);
+
+  const bd = document.getElementById('topicBreakdown');
+  bd.innerHTML = '';
+  rows.forEach(r => {
+    const color = r.pct >= 100 ? 'var(--green)' : r.pct >= 50 ? 'var(--amber)' : 'var(--red)';
+    const row = document.createElement('div');
+    row.className = 'trow';
+    row.innerHTML =
+      `<span class="name">${r.name}</span>` +
+      `<span class="tbar"><i style="width:${r.pct}%;background:${color}"></i></span>` +
+      `<span class="val">${r.correct}/${r.total}</span>`;
+    bd.appendChild(row);
+  });
+
+  const weak = rows.filter(r => r.pct < 100);
+  const weakBox = document.getElementById('weakBox');
+  if (weak.length === 0){
+    weakBox.innerHTML = `<b>Perfect score! 🎉</b> No weak spots this round — try the retake later to keep it fresh.`;
+  } else {
+    const names = weak.map(r => r.name).join(', ');
+    weakBox.innerHTML = `<b>Focus your review here:</b> ${names}. ` +
+      `Re-read the explanations on the questions you missed above, then hit retake.`;
+  }
+
+  finishCard.style.display = 'none';
+  resultsEl.classList.add('show');
+  resultsEl.scrollIntoView({behavior:'smooth'});
+}
+
+function verdictText(pct){
+  if (pct >= 90) return "excellent";
+  if (pct >= 75) return "solid";
+  if (pct >= 60) return "getting there";
+  if (pct >= 50) return "keep reviewing";
+  return "needs more study";
+}
+function letterGrade(pct){
+  if (pct >= 90) return {label:'A', color:'var(--green)', soft:'var(--green-soft)'};
+  if (pct >= 80) return {label:'B', color:'var(--green)', soft:'var(--green-soft)'};
+  if (pct >= 70) return {label:'C', color:'var(--amber)', soft:'var(--amber-soft)'};
+  if (pct >= 60) return {label:'D', color:'var(--amber)', soft:'var(--amber-soft)'};
+  return {label:'Review', color:'var(--red)', soft:'var(--red-soft)'};
+}
+
+updateBar();
+</script>
+</body>
+</html>
